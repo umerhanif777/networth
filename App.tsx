@@ -148,11 +148,52 @@ const styles = StyleSheet.create({
   },
 });
 
-// Web-only: remove the default browser focus outline on inputs so our own
-// bordered fields read cleanly. No-op on native.
+// Web-only bootstrap: focus-outline reset + PWA wiring (manifest, theme/apple
+// meta, service worker). Runs once at module load; no-op on native. Injecting
+// the manifest/meta at runtime keeps the non-Expo-Router HTML template untouched
+// while still making the app installable and offline-capable.
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent =
     'input,textarea,select{outline:none!important}::placeholder{opacity:1}';
   document.head.appendChild(style);
+
+  const head = document.head;
+  const ensure = (selector: string, make: () => HTMLElement) => {
+    if (!head.querySelector(selector)) head.appendChild(make());
+  };
+  const meta = (name: string, content: string) => {
+    const m = document.createElement('meta');
+    m.setAttribute('name', name);
+    m.setAttribute('content', content);
+    return m;
+  };
+  const link = (rel: string, href: string) => {
+    const l = document.createElement('link');
+    l.setAttribute('rel', rel);
+    l.setAttribute('href', href);
+    return l;
+  };
+
+  ensure('link[rel="manifest"]', () => link('manifest', '/manifest.json'));
+  ensure('meta[name="theme-color"]', () => meta('theme-color', '#F6F5F1'));
+  ensure('meta[name="mobile-web-app-capable"]', () => meta('mobile-web-app-capable', 'yes'));
+  ensure('meta[name="apple-mobile-web-app-capable"]', () =>
+    meta('apple-mobile-web-app-capable', 'yes')
+  );
+  ensure('meta[name="apple-mobile-web-app-status-bar-style"]', () =>
+    meta('apple-mobile-web-app-status-bar-style', 'default')
+  );
+  ensure('meta[name="apple-mobile-web-app-title"]', () =>
+    meta('apple-mobile-web-app-title', 'Networth')
+  );
+  ensure('link[rel="apple-touch-icon"]', () => link('apple-touch-icon', '/icons/icon-192.png'));
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .catch((e) => console.warn('Networth: service worker registration failed', e));
+    });
+  }
 }

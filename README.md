@@ -41,13 +41,27 @@ npm run ios          # iOS — macOS only, or use the Expo Go app
 The easiest way to try it on a real phone: run `npm start`, install **Expo Go** on your
 phone, and scan the QR code.
 
+### Progressive Web App
+
+The web build is an installable **PWA** — served over HTTPS it can be added to a phone
+home screen or desktop and runs standalone (no browser chrome), with offline support via
+a service worker. The pieces live in `public/` (`manifest.json`, `sw.js`, `icons/`) and
+are wired into the page at runtime from `App.tsx` (manifest link, theme-color, apple
+meta, service-worker registration). The service worker is deliberately network-first for
+navigations so a new deploy is always picked up, and cache-first only for immutable
+hashed assets.
+
 > Note: on this Windows machine Node lives at `C:\Program Files\nodejs`. If `npm` isn't
 > found in a fresh shell, add that folder to PATH or open a new terminal after install.
 
 ## Architecture
 
 ```
-App.tsx                     Root: StoreProvider + tab/stack navigation shell
+App.tsx                     Root: navigation shell + web PWA/service-worker bootstrap
+public/                     Static web files copied to the build root
+  manifest.json             PWA manifest (name, icons, standalone display)
+  sw.js                     Service worker (offline shell + asset caching)
+  icons/                    192 / 512 PWA icons
 src/
   theme.ts                  Design tokens (colors, spacing, avatar colors)
   types.ts                  Person data model

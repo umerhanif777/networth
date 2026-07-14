@@ -6,18 +6,22 @@ right person (or combination of people) in seconds, and reach out.
 
 One codebase → web, Android, and iOS (via Expo + React Native Web).
 
-## Status: Phase 1 — your private, searchable network
+## Status: Phase 1 + Phase 3 — searchable network with a visual tree
 
-Phase 1 is **local-first**: all data lives on the device (no accounts, no server,
-nothing leaves the phone). This makes it useful on day one, with zero privacy surface.
+Still **local-first**: all data lives on the device (no accounts, no server, nothing
+leaves the phone). Useful on day one, with zero privacy surface. (Phase 2 — accounts and
+sync — is intentionally deferred; the app is single-user for now.)
 
 Working today:
 
 - **Find** — search people by a skill or a name, or tap expertise chips to *combine*
   skills (e.g. catering + marketing) and see who covers all of them vs. some.
+- **Network** *(Phase 3)* — an interactive tree of You → your direct contacts → the
+  people they introduced you to (2nd degree and deeper). Tap anyone to focus their
+  sub-network ("see their network") and see how many people they connect you to.
 - **People** — your full network, searchable, with quick-add.
 - **Add / edit person** — name, how you know them, skill tags, availability, contact,
-  notes.
+  and **who introduced them** (builds the network tree).
 - **Portfolio** — a person's page with their skills, contact actions ("Ask for help"
   drafts a message; "Call"), notes, and their **referral chain** (who introduced them
   to you, and who they introduced you to).
@@ -49,12 +53,14 @@ src/
   types.ts                  Person data model
   store.tsx                 AsyncStorage persistence + CRUD + search logic
   ui.tsx                    Shared components (Avatar, Tag, Button, Card, pills)
+  network.ts                Tree layout (referral chains → positioned nodes/edges)
   data/seed.ts              Sample network shown on first launch
   components/PersonCard.tsx  Person row used by Find + People
   screens/
     FindScreen.tsx          Expertise search — the hero screen
+    NetworkScreen.tsx       Visual network tree (Phase 3) — SVG edges + node overlay
     PeopleScreen.tsx        Full network list
-    PersonForm.tsx          Add / edit
+    PersonForm.tsx          Add / edit (incl. "who introduced them")
     PortfolioScreen.tsx     Person detail + reach-out + referral chain
     MeScreen.tsx            Stats + data controls
 ```
@@ -65,11 +71,11 @@ highlights *why* each person surfaced.
 
 ## Roadmap
 
-- **Phase 2 — social:** real accounts + sync (Supabase/Postgres), in-app "ask" as live
-  chat, invites, availability that people set themselves.
-- **Phase 3 — the network tree:** visual graph, browse 2nd-degree connections, "see
-  their network."
+- **Phase 3 — the network tree:** ✅ done (built ahead of Phase 2). Visual tree, browse
+  2nd-degree+ connections, "see their network."
+- **Phase 2 — social:** deferred. Real accounts + sync (Supabase/Postgres), in-app "ask"
+  as live chat, invites, availability that people set themselves, cross-user referrals.
 - **Phase 4:** iOS release, push notifications, polish.
 
-Navigation is intentionally a tiny hand-rolled stack (no router dependency) to keep
-Phase 1 lean; swap in Expo Router when the screen count grows.
+Navigation is intentionally a tiny hand-rolled stack (no router dependency) to keep the
+app lean; swap in Expo Router when the screen count grows.

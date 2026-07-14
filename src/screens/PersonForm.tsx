@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../store';
+import { invalidReferrers } from '../network';
 import type { Availability } from '../types';
 import { colors, font, radius, space } from '../theme';
 import { Button } from '../ui';
@@ -30,7 +31,7 @@ export function PersonForm({
   onDone: (id: string) => void;
   onCancel: () => void;
 }) {
-  const { getPerson, addPerson, updatePerson, allSkills } = useStore();
+  const { getPerson, addPerson, updatePerson, allSkills, people } = useStore();
   const existing = personId ? getPerson(personId) : undefined;
 
   const [name, setName] = useState(existing?.name ?? '');
@@ -43,6 +44,16 @@ export function PersonForm({
   );
   const [skills, setSkills] = useState<string[]>(existing?.skills ?? []);
   const [skillDraft, setSkillDraft] = useState('');
+  const [referredById, setReferredById] = useState<string | undefined>(
+    existing?.referredById
+  );
+
+  // Who can be picked as the referrer: everyone except this person and their
+  // own sub-network (which would create a loop).
+  const blocked = existing ? invalidReferrers(people, existing.id) : new Set<string>();
+  const referrerChoices = people
+    .filter((p) => !blocked.has(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const addSkill = (raw: string) => {
     const s = raw.trim().replace(/,$/, '').trim();
@@ -72,7 +83,7 @@ export function PersonForm({
       notes: notes.trim() || undefined,
       availability,
       skills,
-      referredById: existing?.referredById,
+      referredById,
     };
     if (existing) {
       updatePerson(existing.id, payload);
@@ -176,6 +187,40 @@ export function PersonForm({
             })}
           </View>
         </Field>
+
+        {referrerChoices.length > 0 && (
+          <Field label="Who introduced them? (optional)">
+            <View style={styles.referRow}>
+              <Pressable
+                onPress={() => setReferredById(undefined)}
+                style={[styles.referChip, !referredById && styles.referChipActive]}
+              >
+                <Text
+                  style={[styles.referText, !referredById && styles.referTextActive]}
+                >
+                  No one / direct
+                </Text>
+              </Pressable>
+              {referrerChoices.map((p) => {
+                const active = referredById === p.id;
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => setReferredById(active ? undefined : p.id)}
+                    style={[styles.referChip, active && styles.referChipActive]}
+                  >
+                    <Text style={[styles.referText, active && styles.referTextActive]}>
+                      {p.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.help}>
+              Links them into your network tree under whoever connected you.
+            </Text>
+          </Field>
+        )}
 
         <View style={styles.rowFields}>
           <Field label="Phone" style={{ flex: 1 }}>
@@ -330,4 +375,16 @@ const styles = StyleSheet.create({
   segItemActive: { backgroundColor: colors.surface },
   segText: { fontSize: font.small, color: colors.textSecondary, fontWeight: '500' },
   segTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  referRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  referChip: {
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    paddingHorizontal: space.md,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+  },
+  referChipActive: { backgroundColor: colors.accentBg, borderColor: colors.accent },
+  referText: { fontSize: font.small, color: colors.textSecondary, fontWeight: '500' },
+  referTextActive: { color: colors.accentText, fontWeight: '600' },
 });

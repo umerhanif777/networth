@@ -13,18 +13,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { StoreProvider, useStore } from './src/store';
 import { colors, font, space } from './src/theme';
 import { FindScreen } from './src/screens/FindScreen';
+import { NetworkScreen } from './src/screens/NetworkScreen';
 import { PeopleScreen } from './src/screens/PeopleScreen';
 import { PersonForm } from './src/screens/PersonForm';
 import { PortfolioScreen } from './src/screens/PortfolioScreen';
 import { MeScreen } from './src/screens/MeScreen';
 
-type Tab = 'find' | 'people' | 'me';
+type Tab = 'find' | 'network' | 'people' | 'me';
 type Overlay =
   | { kind: 'portfolio'; id: string }
   | { kind: 'form'; id?: string };
 
 const TABS: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'find', label: 'Find', icon: 'search' },
+  { key: 'network', label: 'Network', icon: 'share-social' },
   { key: 'people', label: 'People', icon: 'people' },
   { key: 'me', label: 'Me', icon: 'person' },
 ];
@@ -54,6 +56,7 @@ function Shell() {
       {/* Base tab content */}
       <View style={{ flex: 1 }}>
         {tab === 'find' && <FindScreen onOpenPerson={openPerson} />}
+        {tab === 'network' && <NetworkScreen onOpenPerson={openPerson} />}
         {tab === 'people' && (
           <PeopleScreen onOpenPerson={openPerson} onAdd={() => push({ kind: 'form' })} />
         )}

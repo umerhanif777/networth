@@ -25,13 +25,24 @@ export const seedPeople: Person[] = [
     createdAt: 2,
   },
   {
+    id: 'seed-imran',
+    name: 'Imran',
+    relationship: 'photographer',
+    skills: ['Photography', 'Events'],
+    notes: 'Event photographer. Salman works with him at weddings.',
+    availability: 'available',
+    referredById: 'seed-salman',
+    createdAt: 3,
+  },
+  {
     id: 'seed-nadia',
     name: 'Nadia',
     relationship: 'friend',
     skills: ['Catering', 'Baking'],
-    notes: 'Home-based event food and desserts.',
+    notes: 'Home-based event food and desserts. Introduced by Rashid.',
     availability: 'available',
-    createdAt: 3,
+    referredById: 'seed-rashid',
+    createdAt: 4,
   },
   {
     id: 'seed-bilal',
@@ -40,7 +51,7 @@ export const seedPeople: Person[] = [
     skills: ['Cars', 'Mechanics'],
     notes: 'Knows used cars and a trustworthy workshop.',
     availability: 'busy',
-    createdAt: 4,
+    createdAt: 5,
   },
   {
     id: 'seed-omar',
@@ -49,6 +60,6 @@ export const seedPeople: Person[] = [
     skills: ['Mobiles', 'Electronics', 'Repairs'],
     notes: 'Great with phones and gadgets, wholesale contacts.',
     availability: 'available',
-    createdAt: 5,
+    createdAt: 6,
   },
 ];

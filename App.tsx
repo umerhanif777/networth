@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StoreProvider, useStore } from './src/store';
 import { colors, font, space } from './src/theme';
+import { Logo } from './src/components/Logo';
 import { FindScreen } from './src/screens/FindScreen';
 import { NetworkScreen } from './src/screens/NetworkScreen';
 import { PeopleScreen } from './src/screens/PeopleScreen';
@@ -53,6 +54,12 @@ function Shell() {
 
   return (
     <View style={styles.root}>
+      {/* Brand header — shown on every tab (overlays cover it with their own bar) */}
+      <View style={styles.brandBar}>
+        <Logo size={28} />
+        <Text style={styles.brandName}>Networth</Text>
+      </View>
+
       {/* Base tab content */}
       <View style={{ flex: 1 }}>
         {tab === 'find' && <FindScreen onOpenPerson={openPerson} />}
@@ -128,6 +135,22 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   root: { flex: 1, backgroundColor: colors.bg, maxWidth: 640, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center' },
+  brandBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  brandName: {
+    fontSize: font.h2,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
   tabbar: {
     flexDirection: 'row',
     borderTopWidth: 1,

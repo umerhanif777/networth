@@ -32,8 +32,8 @@ export function MeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.body}>
-      <Text style={styles.h1}>Your network</Text>
-      <Text style={styles.sub}>Everything lives on this device — private to you.</Text>
+      <Text style={styles.h1}>You</Text>
+      <Text style={styles.sub}>Your network lives on this device — private to you.</Text>
 
       <View style={styles.statRow}>
         {stats.map((s) => (

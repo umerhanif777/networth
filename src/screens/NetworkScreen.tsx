@@ -6,26 +6,37 @@ import { useStore } from '../store';
 import { colors, font, radius, space, avatarColorFor, initials } from '../theme';
 import { Button, EmptyState } from '../ui';
 import {
-  buildNetworkTree,
+  buildPeopleTree,
+  buildExpertiseTree,
   descendantsOf,
   ancestorsOf,
   ROOT_ID,
   type TreeNode,
 } from '../network';
 
-const NODE = 56; // avatar diameter
-const NODE_BOX = 88; // node container width (avatar + label)
+const NODE = 56; // avatar / node diameter
+const NODE_BOX = 92; // node container width (node + label)
 const PAD_X = 48;
 const PAD_TOP = 20;
 const LABEL_H = 34;
 
+type Mode = 'people' | 'expertise';
+
 export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => void }) {
   const { people } = useStore();
+  const [mode, setMode] = useState<Mode>('people');
   const [focus, setFocus] = useState<string | null>(null);
 
-  const layout = useMemo(() => buildNetworkTree(people), [people]);
+  const layout = useMemo(
+    () => (mode === 'people' ? buildPeopleTree(people) : buildExpertiseTree(people)),
+    [people, mode]
+  );
 
-  // Focus mode: highlight the selected node, its sub-network and its path to You.
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setFocus(null);
+  };
+
   const { highlight, dim } = useMemo(() => {
     if (!focus || !layout.byId[focus]) return { highlight: null as Set<string> | null, dim: false };
     const set = descendantsOf(layout.byId, focus);
@@ -36,33 +47,59 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
 
   const canvasW = layout.width + PAD_X * 2 + NODE;
   const canvasH = layout.height + PAD_TOP + LABEL_H;
-
-  // Convert a node's centre (layout space) to top-left px in canvas space.
   const cx = (n: TreeNode) => n.x + PAD_X + NODE / 2;
   const cy = (n: TreeNode) => n.y + PAD_TOP + NODE / 2;
 
   const focusNode = focus ? layout.byId[focus] : null;
-  const focusPerson = focusNode?.person;
   const focusReach = focus ? descendantsOf(layout.byId, focus).size : 0;
 
-  const directCount = layout.byId[ROOT_ID]?.childrenIds.length ?? 0;
+  const topLevel = layout.byId[ROOT_ID]?.childrenIds.length ?? 0;
+  const subtitle =
+    people.length === 0
+      ? 'Add people to see your network grow.'
+      : mode === 'people'
+      ? `${people.length} ${people.length === 1 ? 'person' : 'people'} · ${topLevel} direct · ${layout.maxDepth} ${layout.maxDepth === 1 ? 'level' : 'levels'} deep`
+      : `${topLevel} ${topLevel === 1 ? 'area' : 'areas'} of expertise · ${people.length} ${people.length === 1 ? 'person' : 'people'}`;
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.h1}>Your network</Text>
-        <Text style={styles.sub}>
-          {people.length === 0
-            ? 'Add people to see your network grow.'
-            : `${people.length} ${people.length === 1 ? 'person' : 'people'} · ${directCount} direct · ${layout.maxDepth} ${layout.maxDepth === 1 ? 'level' : 'levels'} deep`}
+        <Text style={styles.sub}>{subtitle}</Text>
+
+        <View style={styles.segment}>
+          {(['people', 'expertise'] as Mode[]).map((m) => {
+            const active = mode === m;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => switchMode(m)}
+                style={[styles.segItem, active && styles.segItemActive]}
+              >
+                <Ionicons
+                  name={m === 'people' ? 'people-outline' : 'sparkles-outline'}
+                  size={15}
+                  color={active ? colors.accentText : colors.textSecondary}
+                />
+                <Text style={[styles.segText, active && styles.segTextActive]}>
+                  {m === 'people' ? 'People' : 'Expertise'}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.hint}>
+          {mode === 'people'
+            ? 'Tap anyone to see who they connect you to.'
+            : 'Tap a skill to see everyone who covers it.'}
         </Text>
-        <Text style={styles.hint}>Tap anyone to see who they connect you to.</Text>
       </View>
 
       {people.length === 0 ? (
         <EmptyState
           title="No network yet"
-          subtitle="Add people and note who introduced them. Their referral chains draw themselves into a tree here."
+          subtitle="Add people and note their skills and who introduced them. Your network draws itself into a tree here."
         />
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
@@ -71,14 +108,12 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
             showsHorizontalScrollIndicator
             contentContainerStyle={{ minWidth: '100%' }}
           >
-            <Pressable onPress={() => setFocus(null)}>
-              <View style={{ width: canvasW, height: canvasH }}>
-                {/* Edges */}
-                <Svg
-                  width={canvasW}
-                  height={canvasH}
-                  style={StyleSheet.absoluteFill as any}
-                >
+            <View style={{ width: canvasW, height: canvasH }}>
+              {/* Tap empty space to clear focus — a sibling layer behind the
+                  nodes, so a node tap doesn't bubble up and clear itself. */}
+              <Pressable style={StyleSheet.absoluteFill as any} onPress={() => setFocus(null)} />
+              <View style={StyleSheet.absoluteFill as any} pointerEvents="none">
+                <Svg width={canvasW} height={canvasH}>
                   {layout.edges.map((e) => {
                     const a = layout.byId[e.from];
                     const b = layout.byId[e.to];
@@ -100,50 +135,66 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
                     );
                   })}
                 </Svg>
-
-                {/* Nodes */}
-                {layout.nodes.map((n) => {
-                  const isRoot = n.id === ROOT_ID;
-                  const faded = dim && highlight ? !highlight.has(n.id) : false;
-                  const selected = focus === n.id;
-                  return (
-                    <NodeView
-                      key={n.id}
-                      node={n}
-                      left={cx(n) - NODE_BOX / 2}
-                      top={cy(n) - NODE / 2}
-                      isRoot={isRoot}
-                      faded={faded}
-                      selected={selected}
-                      onPress={() => (isRoot ? setFocus(null) : setFocus(n.id))}
-                    />
-                  );
-                })}
               </View>
-            </Pressable>
+
+              {layout.nodes.map((n) => {
+                const faded = dim && highlight ? !highlight.has(n.id) : false;
+                return (
+                  <NodeView
+                    key={n.id}
+                    node={n}
+                    left={cx(n) - NODE_BOX / 2}
+                    top={cy(n) - NODE / 2}
+                    faded={faded}
+                    selected={focus === n.id}
+                    onPress={() => (n.kind === 'root' ? setFocus(null) : setFocus(n.id))}
+                  />
+                );
+              })}
+            </View>
           </ScrollView>
-          <View style={{ height: focusPerson ? 140 : space.xxl }} />
+          <View style={{ height: focusNode && focusNode.kind !== 'root' ? 140 : space.xxl }} />
         </ScrollView>
       )}
 
-      {/* Focus card */}
-      {focusPerson && (
+      {focusNode && focusNode.kind === 'person' && focusNode.person && (
         <View style={styles.focusCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.focusName}>{focusPerson.name}</Text>
+            <Text style={styles.focusName}>{focusNode.person.name}</Text>
             <Text style={styles.focusMeta}>
-              {focusReach > 0
-                ? `Connects you to ${focusReach} more ${focusReach === 1 ? 'person' : 'people'}`
-                : 'No onward connections noted yet'}
-              {focusPerson.skills.length ? ` · ${focusPerson.skills.slice(0, 3).join(', ')}` : ''}
+              {mode === 'people'
+                ? focusReach > 0
+                  ? `Connects you to ${focusReach} more ${focusReach === 1 ? 'person' : 'people'}`
+                  : 'No onward connections noted yet'
+                : focusNode.person.skills.length
+                ? focusNode.person.skills.join(', ')
+                : 'No skills listed'}
             </Text>
           </View>
           <Button
             title="Open"
             variant="secondary"
-            onPress={() => onOpenPerson(focusPerson.id)}
+            onPress={() => onOpenPerson(focusNode.person!.id)}
             icon={<Ionicons name="arrow-forward" size={16} color={colors.textPrimary} />}
           />
+        </View>
+      )}
+
+      {focusNode && focusNode.kind === 'skill' && (
+        <View style={styles.focusCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.focusName}>{focusNode.name}</Text>
+            <Text style={styles.focusMeta}>
+              {focusReach} {focusReach === 1 ? 'person' : 'people'}
+              {focusReach > 0
+                ? ` · ${focusNode.childrenIds
+                    .map((id) => layout.byId[id]?.person?.name)
+                    .filter(Boolean)
+                    .slice(0, 3)
+                    .join(', ')}${focusReach > 3 ? '…' : ''}`
+                : ''}
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -154,7 +205,6 @@ function NodeView({
   node,
   left,
   top,
-  isRoot,
   faded,
   selected,
   onPress,
@@ -162,32 +212,42 @@ function NodeView({
   node: TreeNode;
   left: number;
   top: number;
-  isRoot: boolean;
   faded: boolean;
   selected: boolean;
   onPress: () => void;
 }) {
-  const c = isRoot ? { bg: colors.accent, fg: '#fff' } : avatarColorFor(node.name);
+  const isRoot = node.kind === 'root';
+  const isSkill = node.kind === 'skill';
+  const personColor = avatarColorFor(node.name);
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.node, { left, top, opacity: faded ? 0.3 : 1 }]}
-    >
-      <View
-        style={[
-          styles.avatar,
-          { backgroundColor: c.bg },
-          selected && styles.avatarSelected,
-        ]}
-      >
-        {isRoot ? (
-          <Ionicons name="person" size={24} color="#fff" />
-        ) : (
-          <Text style={{ color: c.fg, fontWeight: '700', fontSize: 18 }}>
-            {initials(node.name)}
-          </Text>
-        )}
-      </View>
+    <Pressable onPress={onPress} style={[styles.node, { left, top, opacity: faded ? 0.3 : 1 }]}>
+      {isSkill ? (
+        <View
+          style={[
+            styles.skillNode,
+            selected && styles.selectedBorder,
+          ]}
+        >
+          <Ionicons name="pricetag" size={22} color={colors.accentText} />
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isRoot ? colors.accent : personColor.bg },
+            selected && styles.selectedBorder,
+          ]}
+        >
+          {isRoot ? (
+            <Ionicons name="person" size={24} color="#fff" />
+          ) : (
+            <Text style={{ color: personColor.fg, fontWeight: '700', fontSize: 18 }}>
+              {initials(node.name)}
+            </Text>
+          )}
+        </View>
+      )}
       <Text style={styles.nodeLabel} numberOfLines={1}>
         {node.name}
       </Text>
@@ -200,12 +260,28 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.sm },
   h1: { fontSize: font.h1, fontWeight: '700', color: colors.textPrimary },
   sub: { fontSize: font.body, color: colors.textSecondary, marginTop: 2 },
-  hint: { fontSize: font.small, color: colors.textMuted, marginTop: space.xs },
-  node: {
-    position: 'absolute',
-    width: NODE_BOX,
-    alignItems: 'center',
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
+    padding: 3,
+    gap: 3,
+    marginTop: space.md,
   },
+  segItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+  },
+  segItemActive: { backgroundColor: colors.surface },
+  segText: { fontSize: font.small, color: colors.textSecondary, fontWeight: '500' },
+  segTextActive: { color: colors.accentText, fontWeight: '600' },
+  hint: { fontSize: font.small, color: colors.textMuted, marginTop: space.sm },
+  node: { position: 'absolute', width: NODE_BOX, alignItems: 'center' },
   avatar: {
     width: NODE,
     height: NODE,
@@ -215,13 +291,23 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.bg,
   },
-  avatarSelected: { borderColor: colors.accent },
+  skillNode: {
+    width: NODE,
+    height: NODE,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.bg,
+  },
+  selectedBorder: { borderColor: colors.accent },
   nodeLabel: {
     marginTop: 5,
     fontSize: font.small,
     color: colors.textPrimary,
     fontWeight: '500',
-    maxWidth: 88,
+    maxWidth: NODE_BOX,
     textAlign: 'center',
   },
   focusCard: {

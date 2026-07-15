@@ -24,6 +24,8 @@ export interface Person {
   /** Optional: the person who introduced you to them — seed of referral chains. */
   referredById?: string;
   createdAt: number;
+  /** Last-modified time; used for last-write-wins sync merges (Phase 2A). */
+  updatedAt?: number;
 }
 
 export type NewPerson = Omit<Person, 'id' | 'createdAt'>;

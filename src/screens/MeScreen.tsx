@@ -1,12 +1,14 @@
 import React from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../store';
+import { useAccount } from '../account';
 import { colors, font, radius, space } from '../theme';
 import { Button, Card, SectionLabel } from '../ui';
 
-export function MeScreen() {
+export function MeScreen({ onBackupSync }: { onBackupSync?: () => void }) {
   const { people, allSkills, clearAll, restoreSample } = useStore();
+  const account = useAccount();
 
   const stats = [
     { label: 'People', value: people.length },
@@ -34,6 +36,34 @@ export function MeScreen() {
     <ScrollView contentContainerStyle={styles.body}>
       <Text style={styles.h1}>You</Text>
       <Text style={styles.sub}>Your network lives on this device — private to you.</Text>
+
+      {/* Sync entry — only shown once a backend is configured (Phase 2A). */}
+      {account.configured && account.status === 'signed-out' && (
+        <Pressable style={styles.syncCard} onPress={onBackupSync}>
+          <View style={styles.syncIcon}>
+            <Ionicons name="cloud-upload-outline" size={22} color={colors.accentText} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.syncTitle}>Back up and sync</Text>
+            <Text style={styles.syncSub}>Sign in to sync across your devices.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </Pressable>
+      )}
+      {account.configured && account.status === 'signed-in' && (
+        <View style={styles.syncCard}>
+          <View style={styles.syncIcon}>
+            <Ionicons name="cloud-done-outline" size={22} color={colors.success} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.syncTitle}>{account.user?.name ?? 'Signed in'}</Text>
+            <Text style={styles.syncSub}>Synced across your devices.</Text>
+          </View>
+          <Pressable onPress={() => account.signOut()} hitSlop={8}>
+            <Text style={styles.signOut}>Sign out</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.statRow}>
         {stats.map((s) => (
@@ -98,6 +128,28 @@ const styles = StyleSheet.create({
   body: { padding: space.lg },
   h1: { fontSize: font.h1, fontWeight: '700', color: colors.textPrimary },
   sub: { fontSize: font.body, color: colors.textSecondary, marginTop: 2, marginBottom: space.lg },
+  syncCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: space.md,
+    marginBottom: space.lg,
+  },
+  syncIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  syncTitle: { fontSize: font.h3, fontWeight: '600', color: colors.textPrimary },
+  syncSub: { fontSize: font.small, color: colors.textSecondary, marginTop: 1 },
+  signOut: { fontSize: font.small, color: colors.danger, fontWeight: '600' },
   statRow: { flexDirection: 'row', gap: space.md, marginBottom: space.sm },
   stat: {
     flex: 1,

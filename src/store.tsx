@@ -66,12 +66,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const api = useMemo<Store>(() => {
     const addPerson = (p: NewPerson): Person => {
-      const person: Person = { ...p, id: makeId(), createdAt: Date.now() };
+      const now = Date.now();
+      const person: Person = { ...p, id: makeId(), createdAt: now, updatedAt: now };
       setPeople((prev) => [person, ...prev]);
       return person;
     };
     const updatePerson = (id: string, patch: Partial<NewPerson>) =>
-      setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+      setPeople((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p))
+      );
     const removePerson = (id: string) =>
       setPeople((prev) => prev.filter((p) => p.id !== id));
     const getPerson = (id: string) => people.find((p) => p.id === id);

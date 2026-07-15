@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StoreProvider, useStore } from './src/store';
+import { AccountProvider } from './src/account';
 import { colors, font, space } from './src/theme';
 import { Logo } from './src/components/Logo';
 import { FindScreen } from './src/screens/FindScreen';
@@ -19,11 +20,13 @@ import { PeopleScreen } from './src/screens/PeopleScreen';
 import { PersonForm } from './src/screens/PersonForm';
 import { PortfolioScreen } from './src/screens/PortfolioScreen';
 import { MeScreen } from './src/screens/MeScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 
 type Tab = 'find' | 'network' | 'people' | 'me';
 type Overlay =
   | { kind: 'portfolio'; id: string }
-  | { kind: 'form'; id?: string };
+  | { kind: 'form'; id?: string }
+  | { kind: 'onboarding' };
 
 const TABS: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'find', label: 'Find', icon: 'search' },
@@ -67,7 +70,9 @@ function Shell() {
         {tab === 'people' && (
           <PeopleScreen onOpenPerson={openPerson} onAdd={() => push({ kind: 'form' })} />
         )}
-        {tab === 'me' && <MeScreen />}
+        {tab === 'me' && (
+          <MeScreen onBackupSync={() => push({ kind: 'onboarding' })} />
+        )}
       </View>
 
       {/* Tab bar */}
@@ -114,6 +119,7 @@ function Shell() {
               }}
             />
           )}
+          {top.kind === 'onboarding' && <OnboardingScreen onClose={pop} />}
         </View>
       )}
     </View>
@@ -125,7 +131,9 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
       <StoreProvider>
-        <Shell />
+        <AccountProvider>
+          <Shell />
+        </AccountProvider>
       </StoreProvider>
     </SafeAreaView>
   );

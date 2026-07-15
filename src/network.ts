@@ -17,6 +17,7 @@ export interface TreeNode {
   name: string; // display label
   person?: Person; // person nodes only
   skill?: string; // skill nodes only
+  count?: number; // skill nodes: how many people have this skill
   depth: number; // 0 = You
   x: number; // centre x, px
   y: number; // centre y, px
@@ -38,6 +39,8 @@ export interface TreeLayout {
 export interface LayoutOpts {
   colW?: number;
   levelH?: number;
+  /** Expertise tree only: skill node ids whose people should be shown. */
+  expanded?: Set<string>;
 }
 
 interface RawNode {
@@ -46,6 +49,7 @@ interface RawNode {
   name: string;
   person?: Person;
   skill?: string;
+  count?: number;
   children: string[];
 }
 
@@ -67,6 +71,7 @@ function layoutForest(
       name: r.name,
       person: r.person,
       skill: r.skill,
+      count: r.count,
       depth,
       x: 0,
       y: depth * levelH,
@@ -181,16 +186,28 @@ export function buildExpertiseTree(people: Person[], opts: LayoutOpts = {}): Tre
 
   const raw = new Map<string, RawNode>();
   const rootChildren: string[] = [];
+  const expanded = opts.expanded ?? new Set<string>();
 
   const addSkillNode = (skillId: string, label: string, skill: string, ppl: Person[]) => {
-    const childIds = [...ppl]
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((p) => {
-        const pid = `${skillId}::${p.id}`;
-        raw.set(pid, { id: pid, kind: 'person', name: p.name, person: p, children: [] });
-        return pid;
-      });
-    raw.set(skillId, { id: skillId, kind: 'skill', name: label, skill, children: childIds });
+    // People only hang under a skill once it's expanded; collapsed skills are
+    // leaves that just advertise their count.
+    const childIds = expanded.has(skillId)
+      ? [...ppl]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((p) => {
+            const pid = `${skillId}::${p.id}`;
+            raw.set(pid, { id: pid, kind: 'person', name: p.name, person: p, children: [] });
+            return pid;
+          })
+      : [];
+    raw.set(skillId, {
+      id: skillId,
+      kind: 'skill',
+      name: label,
+      skill,
+      count: ppl.length,
+      children: childIds,
+    });
     rootChildren.push(skillId);
   };
 

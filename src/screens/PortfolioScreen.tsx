@@ -42,20 +42,35 @@ export function PortfolioScreen({
   const referredBy = person.referredById ? getPerson(person.referredById) : undefined;
   const referred = people.filter((p) => p.referredById === person.id);
 
-  const ask = async () => {
+  const ask = () => {
     const msg = `Hi ${person.name}, I need some help${
       person.skills.length ? ` with ${person.skills[0].toLowerCase()}` : ''
     }. Are you available, or could you point me to someone? Thanks!`;
+    const text = encodeURIComponent(msg);
+    // WhatsApp needs an international number with no symbols; keep digits only.
+    const digits = (person.phone ?? '').replace(/[^\d]/g, '');
 
-    if (person.phone) {
-      // Native SMS deep link (works on Android/iOS). Web has no SMS handler.
+    const openWhatsApp = () => {
+      // wa.me opens the WhatsApp app on mobile and offers WhatsApp Web / the
+      // desktop app on the web. Without a number it opens the contact picker.
+      const url = digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
+      Linking.openURL(url).catch(() => Alert.alert('WhatsApp unavailable', msg, [{ text: 'OK' }]));
+    };
+    const openSms = () => {
       const sep = Platform.OS === 'ios' ? '&' : '?';
-      const url = `sms:${person.phone}${sep}body=${encodeURIComponent(msg)}`;
-      const ok = await Linking.canOpenURL(url).catch(() => false);
-      if (ok) return Linking.openURL(url);
-    }
-    // Fallback: show the drafted message (Phase 2 turns this into in-app chat).
-    Alert.alert('Message ready', msg, [{ text: 'OK' }]);
+      Linking.openURL(`sms:${person.phone}${sep}body=${text}`).catch(() =>
+        Alert.alert('Message ready', msg, [{ text: 'OK' }])
+      );
+    };
+
+    // Web app: WhatsApp only (the browser/OS lets them pick the associated app).
+    if (Platform.OS === 'web') return openWhatsApp();
+
+    // Mobile: choose between WhatsApp and a text message.
+    const buttons: any[] = [{ text: 'WhatsApp', onPress: openWhatsApp }];
+    if (person.phone) buttons.push({ text: 'Text message', onPress: openSms });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(`Ask ${person.name}`, 'How do you want to reach them?', buttons);
   };
 
   const call = () => person.phone && Linking.openURL(`tel:${person.phone}`);

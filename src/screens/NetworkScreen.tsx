@@ -26,15 +26,29 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
   const { people } = useStore();
   const [mode, setMode] = useState<Mode>('people');
   const [focus, setFocus] = useState<string | null>(null);
+  const [openSkills, setOpenSkills] = useState<Set<string>>(new Set());
 
   const layout = useMemo(
-    () => (mode === 'people' ? buildPeopleTree(people) : buildExpertiseTree(people)),
-    [people, mode]
+    () =>
+      mode === 'people'
+        ? buildPeopleTree(people)
+        : buildExpertiseTree(people, { expanded: openSkills }),
+    [people, mode, openSkills]
   );
 
   const switchMode = (m: Mode) => {
     setMode(m);
     setFocus(null);
+    setOpenSkills(new Set());
+  };
+
+  const toggleSkill = (id: string) => {
+    setFocus(null);
+    setOpenSkills((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
   const { highlight, dim } = useMemo(() => {
@@ -92,7 +106,7 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
         <Text style={styles.hint}>
           {mode === 'people'
             ? 'Tap anyone to see who they connect you to.'
-            : 'Tap a skill to see everyone who covers it.'}
+            : 'Tap a skill to reveal everyone who covers it.'}
         </Text>
       </View>
 
@@ -147,7 +161,12 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
                     top={cy(n) - NODE / 2}
                     faded={faded}
                     selected={focus === n.id}
-                    onPress={() => (n.kind === 'root' ? setFocus(null) : setFocus(n.id))}
+                    skillOpen={n.kind === 'skill' && openSkills.has(n.id)}
+                    onPress={() => {
+                      if (n.kind === 'root') setFocus(null);
+                      else if (n.kind === 'skill') toggleSkill(n.id);
+                      else setFocus(n.id);
+                    }}
                   />
                 );
               })}
@@ -179,24 +198,6 @@ export function NetworkScreen({ onOpenPerson }: { onOpenPerson: (id: string) => 
           />
         </View>
       )}
-
-      {focusNode && focusNode.kind === 'skill' && (
-        <View style={styles.focusCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.focusName}>{focusNode.name}</Text>
-            <Text style={styles.focusMeta}>
-              {focusReach} {focusReach === 1 ? 'person' : 'people'}
-              {focusReach > 0
-                ? ` · ${focusNode.childrenIds
-                    .map((id) => layout.byId[id]?.person?.name)
-                    .filter(Boolean)
-                    .slice(0, 3)
-                    .join(', ')}${focusReach > 3 ? '…' : ''}`
-                : ''}
-            </Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -207,6 +208,7 @@ function NodeView({
   top,
   faded,
   selected,
+  skillOpen,
   onPress,
 }: {
   node: TreeNode;
@@ -214,6 +216,7 @@ function NodeView({
   top: number;
   faded: boolean;
   selected: boolean;
+  skillOpen?: boolean;
   onPress: () => void;
 }) {
   const isRoot = node.kind === 'root';
@@ -223,13 +226,17 @@ function NodeView({
   return (
     <Pressable onPress={onPress} style={[styles.node, { left, top, opacity: faded ? 0.3 : 1 }]}>
       {isSkill ? (
-        <View
-          style={[
-            styles.skillNode,
-            selected && styles.selectedBorder,
-          ]}
-        >
-          <Ionicons name="pricetag" size={22} color={colors.accentText} />
+        <View style={[styles.skillNode, skillOpen && styles.skillNodeOpen]}>
+          <Ionicons
+            name={skillOpen ? 'pricetag' : 'pricetag-outline'}
+            size={22}
+            color={skillOpen ? '#fff' : colors.accentText}
+          />
+          {typeof node.count === 'number' && node.count > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{node.count}</Text>
+            </View>
+          )}
         </View>
       ) : (
         <View
@@ -301,6 +308,22 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.bg,
   },
+  skillNodeOpen: { backgroundColor: colors.accent },
+  countBadge: {
+    position: 'absolute',
+    top: -4,
+    right: 12,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 3,
+    backgroundColor: colors.accentText,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   selectedBorder: { borderColor: colors.accent },
   nodeLabel: {
     marginTop: 5,

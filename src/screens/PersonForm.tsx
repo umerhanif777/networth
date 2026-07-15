@@ -38,6 +38,8 @@ export function PersonForm({
   const [relationship, setRelationship] = useState(existing?.relationship ?? '');
   const [phone, setPhone] = useState(existing?.phone ?? '');
   const [email, setEmail] = useState(existing?.email ?? '');
+  const [city, setCity] = useState(existing?.city ?? '');
+  const [address, setAddress] = useState(existing?.address ?? '');
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [availability, setAvailability] = useState<Availability>(
     existing?.availability ?? 'unknown'
@@ -80,6 +82,8 @@ export function PersonForm({
       relationship: relationship.trim(),
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
+      city: city.trim() || undefined,
+      address: address.trim() || undefined,
       notes: notes.trim() || undefined,
       availability,
       skills,
@@ -244,6 +248,27 @@ export function PersonForm({
             style={styles.input}
             keyboardType="email-address"
             autoCapitalize="none"
+          />
+        </Field>
+
+        <Field label="City">
+          <TextInput
+            value={city}
+            onChangeText={setCity}
+            placeholder="e.g. Lahore"
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+          />
+        </Field>
+
+        <Field label="Address">
+          <TextInput
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Optional — street, area, landmark"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.input, styles.textarea]}
+            multiline
           />
         </Field>
 

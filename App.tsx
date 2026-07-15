@@ -57,7 +57,7 @@ function Shell() {
       {/* Brand header — shown on every tab (overlays cover it with their own bar) */}
       <View style={styles.brandBar}>
         <Logo size={28} />
-        <Text style={styles.brandName}>Networth</Text>
+        <Text style={styles.brandName}>Networthit</Text>
       </View>
 
       {/* Base tab content */}
@@ -208,7 +208,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     meta('apple-mobile-web-app-status-bar-style', 'default')
   );
   ensure('meta[name="apple-mobile-web-app-title"]', () =>
-    meta('apple-mobile-web-app-title', 'Networth')
+    meta('apple-mobile-web-app-title', 'Networthit')
   );
   ensure('link[rel="apple-touch-icon"]', () => link('apple-touch-icon', '/icons/icon-192.png'));
 

@@ -9,7 +9,7 @@
  *     filenames change every build, so caching them forever is safe.
  *   - skipWaiting + clients.claim so a new worker takes over promptly.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL_CACHE = `networth-shell-${VERSION}`;
 const ASSET_CACHE = `networth-assets-${VERSION}`;
 const OFFLINE_URL = '/';

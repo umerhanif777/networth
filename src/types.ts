@@ -13,6 +13,10 @@ export interface Person {
   skills: string[];
   phone?: string;
   email?: string;
+  /** City / town they're in. */
+  city?: string;
+  /** Fuller street address, if you have it. */
+  address?: string;
   /** Anything you want to remember about them. */
   notes?: string;
   /** Your note on whether they can help right now (Phase 1 is your own read). */

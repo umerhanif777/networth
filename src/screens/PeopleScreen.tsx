@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../store';
 import { colors, font, radius, space } from '../theme';
 import { Button, EmptyState } from '../ui';
 import { PersonCard } from '../components/PersonCard';
+import { contactsSupported, importContactsWeb } from '../contacts';
 
 export function PeopleScreen({
   onOpenPerson,
@@ -13,8 +14,47 @@ export function PeopleScreen({
   onOpenPerson: (id: string) => void;
   onAdd: () => void;
 }) {
-  const { people, getPerson } = useStore();
+  const { people, getPerson, addPerson } = useStore();
   const [q, setQ] = useState('');
+  const [importing, setImporting] = useState(false);
+
+  const notify = (title: string, message?: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') window.alert(message ? `${title}\n\n${message}` : title);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const onImport = async () => {
+    if (Platform.OS !== 'web' || !contactsSupported()) {
+      notify(
+        'Contacts import needs a phone',
+        'Open the installed Networthit app on an Android phone (Chrome) to import from your contacts. Meanwhile you can add people manually.'
+      );
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await importContactsWeb(addPerson);
+      if (res.added === 0) {
+        notify(
+          'Nothing imported',
+          'None of the selected contacts had a recognisable skill. Tip: name them like “Imran Mechanic”, then import again.'
+        );
+      } else {
+        notify(
+          `Imported ${res.added} ${res.added === 1 ? 'person' : 'people'}`,
+          `${res.addedNames.join(', ')}${res.skipped ? `\n\nSkipped ${res.skipped} without a skill keyword.` : ''}`
+        );
+      }
+    } catch (e: any) {
+      if (e && (e.name === 'AbortError' || /cancel|abort/i.test(e.message || ''))) return;
+      notify('Couldn’t open contacts', e?.message || 'Please try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const norm = q.toLowerCase().trim();
@@ -49,6 +89,13 @@ export function PeopleScreen({
             autoCorrect={false}
           />
         </View>
+        <Pressable onPress={onImport} style={styles.importRow} disabled={importing}>
+          <Ionicons name="cloud-download-outline" size={18} color={colors.accentText} />
+          <Text style={styles.importText}>
+            {importing ? 'Importing…' : 'Import from contacts'}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
@@ -110,6 +157,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     height: 46,
   },
+  importRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.sm,
+    paddingVertical: 10,
+    paddingHorizontal: space.md,
+    backgroundColor: colors.accentBg,
+    borderRadius: radius.md,
+  },
+  importText: { flex: 1, fontSize: font.body, fontWeight: '600', color: colors.accentText },
   input: {
     flex: 1,
     fontSize: font.body,

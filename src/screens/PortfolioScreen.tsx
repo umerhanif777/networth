@@ -74,6 +74,8 @@ export function PortfolioScreen({
   };
 
   const call = () => person.phone && Linking.openURL(`tel:${person.phone}`);
+  const openMap = (q: string) =>
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`);
 
   const confirmDelete = () => {
     const doDelete = () => {
@@ -148,6 +150,25 @@ export function PortfolioScreen({
                   onPress={() => Linking.openURL(`mailto:${person.email}`)}
                   last={!person.phone}
                 />
+              ) : null}
+            </Card>
+          </>
+        )}
+
+        {(person.city || person.address) && (
+          <>
+            <SectionLabel>Location</SectionLabel>
+            <Card style={{ padding: 0 }}>
+              {person.city ? (
+                <ContactRow
+                  icon="location-outline"
+                  label={person.city}
+                  onPress={() => openMap(person.city!)}
+                  last={!person.address}
+                />
+              ) : null}
+              {person.address ? (
+                <ContactRow icon="map-outline" label={person.address} onPress={() => openMap(person.address!)} last />
               ) : null}
             </Card>
           </>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Networth",
+    "name": "Networthit",
     "slug": "networth",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,9 +11,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#4F46E5",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false

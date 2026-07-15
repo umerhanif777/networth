@@ -9,8 +9,16 @@
 // runs as a purely local, offline app (today's behaviour). Set these in a local
 // `.env` for dev and in the Cloudflare Pages project settings for the deploy.
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// Env vars win when set (local .env or Cloudflare dashboard); otherwise fall
+// back to the committed public values so every build — including Cloudflare
+// Pages, which doesn't auto-load .env — has them. These are public by design;
+// row-level security is what protects the data.
+const FALLBACK_URL = 'https://qhopempqsfnnsnslqyuq.supabase.co';
+const FALLBACK_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFob3BlbXBxc2ZubnNuc2xxeXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTAwOTcsImV4cCI6MjA5OTY4NjA5N30.OxTQUysHM7kVW4CMF3hACRz1JYJNsNOMDU2_bpd_Rgo';
+
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL || FALLBACK_URL;
+const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
 export const supabaseConfig = { url, anonKey };
 

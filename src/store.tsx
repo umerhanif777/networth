@@ -22,6 +22,8 @@ interface Store {
   allSkills: { name: string; count: number }[];
   clearAll: () => void;
   restoreSample: () => void;
+  /** Replace the whole set — used by sync after merging with the backend. */
+  setAll: (people: Person[]) => void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -92,6 +94,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     const clearAll = () => setPeople([]);
     const restoreSample = () => setPeople(seedPeople);
+    const setAll = (next: Person[]) => setPeople(next);
 
     return {
       people,
@@ -103,6 +106,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       allSkills,
       clearAll,
       restoreSample,
+      setAll,
     };
   }, [people, loading]);
 
